@@ -26,6 +26,10 @@ public class TodoController {
 
     private void loadTasks() {
         currentTasks = dao.getTasks(username);
+        reloadTable();
+    }
+
+    private void reloadTable() {
         view.getTableModel().setRowCount(0);
         for (TodoModel task : currentTasks) {
             view.getTableModel().addRow(new Object[]{
@@ -39,10 +43,7 @@ public class TodoController {
         }
     }
 
-    public void handleAdd() {
-        String desc = view.getTaskField().getText().trim();
-        String due = view.getDueDateField().getText().trim();
-
+    public void handleAddFromDialog(String desc, String due) {
         if (desc.isEmpty() || due.isEmpty()) {
             view.getMessageLabel().setText("Task and due date required.");
             return;
@@ -56,9 +57,7 @@ public class TodoController {
         }
 
         dao.addTask(username, desc, due);
-        view.getTaskField().setText("");
-        view.getDueDateField().setText("");
-        view.getMessageLabel().setText("");
+        view.getMessageLabel().setText("Task added.");
         loadTasks();
     }
 
@@ -98,28 +97,71 @@ public class TodoController {
     }
 
     public void handleDelete() {
-        int row = view.getTaskTable().getSelectedRow();
-        if (row == -1) {
-            view.getMessageLabel().setText("Select a task to delete.");
+        int[] selectedRows = view.getTaskTable().getSelectedRows();
+        if (selectedRows.length == 0) {
+            view.getMessageLabel().setText("Select one or more tasks to delete.");
             return;
         }
 
-        int taskId = currentTasks.get(row).getId();
-        dao.deleteTaskById(taskId);
-        view.getMessageLabel().setText("Task deleted.");
+        int confirm = JOptionPane.showConfirmDialog(view, "Delete selected tasks?", "Confirm", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        for (int row : selectedRows) {
+            int taskId = currentTasks.get(row).getId();
+            dao.deleteTaskById(taskId);
+        }
+
+        view.getMessageLabel().setText("Selected tasks deleted.");
         loadTasks();
     }
 
     public void handleMarkDone() {
-        int row = view.getTaskTable().getSelectedRow();
-        if (row == -1) {
-            view.getMessageLabel().setText("Select a task to mark done.");
+        int[] selectedRows = view.getTaskTable().getSelectedRows();
+        if (selectedRows.length == 0) {
+            view.getMessageLabel().setText("Select one or more tasks to mark done.");
             return;
         }
 
-        int taskId = currentTasks.get(row).getId();
-        dao.markTaskDoneById(taskId);
-        view.getMessageLabel().setText("Task marked as done.");
+        for (int row : selectedRows) {
+            int taskId = currentTasks.get(row).getId();
+            dao.markTaskDoneById(taskId);
+        }
+
+        view.getMessageLabel().setText("Selected tasks marked as done.");
         loadTasks();
+    }
+
+    public void handleRevertToPending() {
+        int row = view.getTaskTable().getSelectedRow();
+        if (row == -1) {
+            view.getMessageLabel().setText("Select a task to revert.");
+            return;
+        }
+
+        TodoModel task = currentTasks.get(row);
+        if (!task.getStatus().equalsIgnoreCase("Done")) {
+            view.getMessageLabel().setText("Only 'Done' tasks can be reverted.");
+            return;
+        }
+
+        dao.markTaskPendingById(task.getId());
+        view.getMessageLabel().setText("Task reverted to pending.");
+        loadTasks();
+    }
+
+    public void handleSort(String option) {
+        switch (option) {
+            case "Due Date":
+                currentTasks.sort((a, b) -> a.getDueDate().compareTo(b.getDueDate()));
+                break;
+            case "Status":
+                currentTasks.sort((a, b) -> a.getStatus().compareToIgnoreCase(b.getStatus()));
+                break;
+            case "Description":
+                currentTasks.sort((a, b) -> a.getDescription().compareToIgnoreCase(b.getDescription()));
+                break;
+        }
+        view.getMessageLabel().setText("Tasks sorted by " + option.toLowerCase() + ".");
+        reloadTable();
     }
 }

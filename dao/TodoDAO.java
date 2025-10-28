@@ -76,4 +76,14 @@ public class TodoDAO {
             e.printStackTrace();
         }
     }
+
+    public void markTaskPendingById(int id) {
+        String sql = "UPDATE tasks SET status = 'Pending' WHERE id = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
