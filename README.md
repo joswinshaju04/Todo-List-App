@@ -1,3 +1,3 @@
 # Todo-List-App
 ## Class-Diagram
-![Todo App Screenshot](images/TodoAppCD.png)
+![Todo App Screenshot](images/TodoCD.png)
