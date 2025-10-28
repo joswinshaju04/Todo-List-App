@@ -1,86 +1,45 @@
 package view;
 
 import controller.TodoController;
-import model.TodoModel;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.ArrayList;
 
 public class TodoView extends JFrame {
-    private final JTextField nameField;
-    private final JTextField taskField;
-    private final JTextField dateField;
-    private final JTable table;
-    private final DefaultTableModel tableModel;
-    private ArrayList<TodoModel> tasks;
+    private JTable taskTable;
+    private DefaultTableModel tableModel;
+    private JTextField taskField, dueDateField;
+    private JButton addButton, editButton, deleteButton, markDoneButton;
+    private JLabel messageLabel;
     private TodoController controller;
 
     public TodoView() {
-        setTitle("📝 Todo App");
-        setSize(950, 550);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setTitle("Todo App");
+        setSize(900, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10, 10));
 
-        Font labelFont = new Font("SansSerif", Font.PLAIN, 14);
+        // Main container
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        // Input Panel
-        JPanel inputPanel = new JPanel(new GridBagLayout());
-        inputPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
+        // Top input panel
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 30, 30));
+        taskField = new JTextField(20);
+        dueDateField = new JTextField(10);
+        addButton = new JButton("Add");
 
-        // Row 0: Created By
-        gbc.gridx = 0; gbc.gridy = 0;
-        JLabel nameLabel = new JLabel("Created By:");
-        nameLabel.setFont(labelFont);
-        inputPanel.add(nameLabel, gbc);
+        topPanel.add(new JLabel("Task:"));
+        topPanel.add(taskField);
+        topPanel.add(new JLabel("Due Date (YYYY-MM-DD):"));
+        topPanel.add(dueDateField);
+        topPanel.add(addButton);
 
-        gbc.gridx = 1;
-        nameField = new JTextField(30);
-        nameField.setFont(labelFont);
-        inputPanel.add(nameField, gbc);
-
-        // Row 1: Task Description
-        gbc.gridx = 0; gbc.gridy = 1;
-        JLabel descLabel = new JLabel("Task Description:");
-        descLabel.setFont(labelFont);
-        inputPanel.add(descLabel, gbc);
-
-        gbc.gridx = 1;
-        taskField = new JTextField(30);
-        taskField.setFont(labelFont);
-        inputPanel.add(taskField, gbc);
-
-        // Row 2: Due Date
-        gbc.gridx = 0; gbc.gridy = 2;
-        JLabel dueDateLabel = new JLabel("Due Date (YYYY-MM-DD):");
-        dueDateLabel.setFont(labelFont);
-        inputPanel.add(dueDateLabel, gbc);
-
-        gbc.gridx = 1;
-        dateField = new JTextField(30);
-        dateField.setFont(labelFont);
-        inputPanel.add(dateField, gbc);
-
-        // Button Panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        JButton addButton = new JButton("➕ Add Task");
-        JButton doneButton = new JButton("✅ Mark as Done");
-        JButton deleteButton = new JButton("🗑️ Delete Task");
-
-        buttonPanel.add(addButton);
-        buttonPanel.add(doneButton);
-        buttonPanel.add(deleteButton);
-
-        // Table setup
+        // Table model
         tableModel = new DefaultTableModel(new String[]{
-            "Created By", "Description", "Created Date", "Created Time", "Due Date", "Status"
+             "Created By", "Description", "Created Date", "Created Time", "Due Date", "Status"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -88,75 +47,54 @@ public class TodoView extends JFrame {
             }
         };
 
-        table = new JTable(tableModel);
-        table.setRowHeight(24);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(new EmptyBorder(10, 20, 10, 20));
+        taskTable = new JTable(tableModel);
+        taskTable.setRowHeight(25);
+        JScrollPane scrollPane = new JScrollPane(taskTable);
+        scrollPane.setPreferredSize(new Dimension(850, 300));
 
-        // Layout
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.add(inputPanel, BorderLayout.NORTH);
-        topPanel.add(buttonPanel, BorderLayout.SOUTH);
+        // Bottom button panel
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        editButton = new JButton("Edit");
+        markDoneButton = new JButton("Mark Done");
+        deleteButton = new JButton("Delete");
+        bottomPanel.add(editButton);
+        bottomPanel.add(markDoneButton);
+        bottomPanel.add(deleteButton);
 
-        add(topPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        // Message label
+        messageLabel = new JLabel("");
+        messageLabel.setForeground(Color.RED);
+        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        // Button Actions
-        addButton.addActionListener(e -> {
-            if (controller != null) {
-                controller.addTask(nameField.getText(), taskField.getText(), dateField.getText());
-            }
-        });
+        // Assemble layout
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        doneButton.addActionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (controller != null && selectedRow != -1 && tasks != null) {
-                int taskId = tasks.get(selectedRow).getId();
-                controller.markTaskDone(taskId);
-            } else {
-                showError("Please select a task to mark as done.");
-            }
-        });
+        JPanel southPanel = new JPanel();
+        southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.Y_AXIS));
+        southPanel.add(bottomPanel);
+        southPanel.add(messageLabel);
 
-        deleteButton.addActionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (controller != null && selectedRow != -1 && tasks != null) {
-                int taskId = tasks.get(selectedRow).getId();
-                controller.deleteTask(taskId);
-            } else {
-                showError("Please select a task to delete.");
-            }
-        });
+        mainPanel.add(southPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+        setVisible(true);
+
+        // Button actions
+        addButton.addActionListener(e -> controller.handleAdd());
+        editButton.addActionListener(e -> controller.handleEdit());
+        deleteButton.addActionListener(e -> controller.handleDelete());
+        markDoneButton.addActionListener(e -> controller.handleMarkDone());
     }
 
     public void setController(TodoController controller) {
         this.controller = controller;
-        setVisible(true);
     }
 
-    public void updateTable(ArrayList<TodoModel> tasks) {
-        this.tasks = tasks;
-        tableModel.setRowCount(0);
-        for (TodoModel task : tasks) {
-            tableModel.addRow(new Object[]{
-                task.getCreatedBy(),
-                task.getDescription(),
-                task.getCreatedDate(),
-                task.getCreatedTime(),
-                task.getDueDate(),
-                task.isDone() ? "Done" : "Pending"
-            });
-        }
-    }
-
-    public void showError(String message) {
-        JOptionPane.showMessageDialog(this, message);
-    }
-
-    public void clearInputs() {
-        nameField.setText("");
-        taskField.setText("");
-        dateField.setText("");
-    }
+    // Getters
+    public JTable getTaskTable() { return taskTable; }
+    public DefaultTableModel getTableModel() { return tableModel; }
+    public JTextField getTaskField() { return taskField; }
+    public JTextField getDueDateField() { return dueDateField; }
+    public JLabel getMessageLabel() { return messageLabel; }
 }
